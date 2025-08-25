@@ -4,10 +4,14 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
-
+import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { Header } from "~/components/Header";
 import "./tailwind.css";
+import { getUser } from "./utils/auth.server";
+import { meta as baseMeta } from "./meta";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -22,16 +26,25 @@ export const links: LinksFunction = () => [
   },
 ];
 
+export const meta: MetaFunction = baseMeta;
+
+// PUBLIC_INTERFACE
+export async function loader({ request }: LoaderFunctionArgs) {
+  /** Root loader returns the current user (if any) for header rendering across routes. */
+  const user = await getUser(request);
+  return json({ user });
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="h-full">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="flex h-screen flex-col bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -41,5 +54,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const { user } = useLoaderData<typeof loader>();
+  return (
+    <div className="flex h-full flex-col">
+      <Header user={user} />
+      <main className="flex min-h-0 flex-1 overflow-hidden">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
